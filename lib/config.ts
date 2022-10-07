@@ -31,8 +31,8 @@ export function loadDbConfig(): DbConfig {
 export function loadCacheConfig(): CacheConfig {
   if (conf.has("redis")) {
     return {
-      port: optional("redis.socket.port"),
-      host: optional("redis.socket.host"),
+      port: optional("redis.port"),
+      host: optional("redis.host"),
       username: optional("redis.username"),
       password: optional("redis.password"),
       db: optional("redis.db"),
