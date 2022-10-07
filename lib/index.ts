@@ -1,6 +1,6 @@
 export { Job, JobPayload } from "./models";
 
-export { hash } from "./util";
+export { hash, RootLogger } from "./util";
 
 export { Config, loadDbConfig, loadConfig, loadCacheConfig } from "./config";
 
