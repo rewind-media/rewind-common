@@ -1,6 +1,6 @@
 {
   "name": "@rewind-media/rewind-common",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "license": "AGPLv3",
   "description": "Common models and utilities for Rewind.",
   "repository": {
@@ -43,6 +43,6 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "./dist/**"
   ]
 }
