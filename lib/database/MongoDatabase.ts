@@ -3,7 +3,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import { randomUUID } from "crypto";
 import { hashPassword } from "../util/hash";
-import { Database, DatabaseLogger } from "./Database";
+import { AbstractDatabase, Database, DatabaseLogger } from "./Database";
 import {
   FileInfo,
   ImageInfo,
@@ -40,20 +40,21 @@ interface MongoUser {
 
 const log = DatabaseLogger.getChildCategory("Mongo");
 
-export class MongoDatabase implements Database {
-  private db: Db;
-  private mons: Collection<StreamProps>;
-  private users: Collection<MongoUser>;
-  private client: MongoClient;
-  private dbName: string;
-  private libraries: Collection<Library>;
-  private files: Collection<FileInfo>;
-  private shows: Collection<SeriesInfo>;
-  private showsEpisodes: Collection<ShowEpisodeInfo>;
-  private showsSeasons: Collection<ShowSeasonInfo>;
-  private images: Collection<ImageInfo>;
+export class MongoDatabase extends AbstractDatabase {
+  private readonly db: Db;
+  private readonly mons: Collection<StreamProps>;
+  private readonly users: Collection<MongoUser>;
+  private readonly client: MongoClient;
+  private readonly dbName: string;
+  private readonly libraries: Collection<Library>;
+  private readonly files: Collection<FileInfo>;
+  private readonly shows: Collection<SeriesInfo>;
+  private readonly showsEpisodes: Collection<ShowEpisodeInfo>;
+  private readonly showsSeasons: Collection<ShowSeasonInfo>;
+  private readonly images: Collection<ImageInfo>;
 
   constructor(props: MongoDbProps) {
+    super();
     this.dbName = props.dbName;
     this.client = props.client;
     this.db = this.client.db(props.dbName);
@@ -321,18 +322,7 @@ export class MongoDatabase implements Database {
           return Promise.resolve();
         }
       })
-      .then(() => this.listLibraries())
-      .then((libs) => {
-        if (_.isEmpty(libs)) {
-          return this.upsertLibrary({
-            name: "test",
-            rootPaths: ["/home/kenny/Desktop/CYE"],
-            type: LibraryType.Show,
-          });
-        } else {
-          return new Promise((resolve) => resolve(false));
-        }
-      })
+      .then(() => super.initialize())
       .then(() => this);
   }
 
