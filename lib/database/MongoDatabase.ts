@@ -296,7 +296,7 @@ export class MongoDatabase extends AbstractDatabase {
     return MongoStore.create({ client: this.client, dbName: this.dbName });
   }
 
-  async initialize(): Promise<Database> {
+  override async initialize(): Promise<Database> {
     return Promise.all([this.mons.createIndex({ name: 1 }, { unique: true })])
       .then(() => log.info("MongoDb initialized"))
       .then(() => this.listUsers())

@@ -60,31 +60,30 @@ export interface Database {
 
 export abstract class AbstractDatabase implements Database {
   initialize(): Promise<Database> {
-    return this.initialize()
-      .then(() =>
-        this.listUsers().then((userArr) => {
-          if (isEmpty(userArr)) {
-            const username = "rewind-" + randomUUID();
-            const password = randomUUID();
-            const salt = randomUUID();
-            DatabaseLogger.info(
-              `Created initial Rewind user. Username: '${username}', Password: '${password}'`
-            );
-            return hashPassword(password, salt).then((hashedPass) =>
-              this.putUser({
-                username: username,
-                hashedPass: hashedPass,
-                salt: salt,
-                permissions: {
-                  isAdmin: true,
-                },
-              })
-            );
-          } else {
-            return Promise.resolve(true);
-          }
-        })
-      )
+    return this.listUsers()
+      .then((userArr) => {
+        if (isEmpty(userArr)) {
+          const username = "rewind-" + randomUUID();
+          const password = randomUUID();
+          const salt = randomUUID();
+          DatabaseLogger.info(
+            `Created initial Rewind user. Username: '${username}', Password: '${password}'`
+          );
+          return hashPassword(password, salt).then((hashedPass) =>
+            this.putUser({
+              username: username,
+              hashedPass: hashedPass,
+              salt: salt,
+              permissions: {
+                isAdmin: true,
+              },
+            })
+          );
+        } else {
+          return Promise.resolve(true);
+        }
+      })
+
       .then(() => this);
   }
 
