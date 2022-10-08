@@ -32,6 +32,10 @@ export class RedisCache implements Cache {
       .then();
   }
 
+  delM3u8(streamId: string): Promise<void> {
+    return this.redis.del(`${streamId}.m3u8`).then();
+  }
+
   getInitMp4(streamId: string): Promise<Buffer | null> {
     return this.redis.get(`${streamId}.init.mp4`).then((it) => {
       if (it) {
@@ -52,6 +56,10 @@ export class RedisCache implements Cache {
         initMp4.toString("base64")
       )
       .then();
+  }
+
+  delInitMp4(streamId: string): Promise<void> {
+    return this.redis.del(`${streamId}.init.mp4`).then();
   }
 
   getSegmentM4s(streamId: string, segmentId: number): Promise<Buffer | null> {
@@ -77,20 +85,34 @@ export class RedisCache implements Cache {
       .then();
   }
 
-  getJobQueue(id: string): JobQueue {
-    return new RedisJobQueue(id, this.redis);
-  }
-
-  delInitMp4(streamId: string): Promise<void> {
-    return this.redis.del(`${streamId}.init.mp4`).then();
-  }
-
-  delM3u8(streamId: string): Promise<void> {
-    return this.redis.del(`${streamId}.m3u8`).then();
-  }
-
   delSegmentM4s(streamId: string, segmentId: number): Promise<void> {
     return this.redis.del(`${streamId}:${segmentId}.m4s`).then();
+  }
+
+  getImage(imageId: string): Promise<Buffer | null> {
+    return this.redis.get(`Image:${imageId}`).then((it) => {
+      if (it) {
+        return Buffer.from(it, "base64");
+      } else return null;
+    });
+  }
+
+  putImage(imageId: string, image: Buffer, expiration: Date): Promise<void> {
+    return this.redis
+      .setex(
+        `Image:${imageId}`,
+        calculateTtlSecs(expiration),
+        image.toString("base64")
+      )
+      .then();
+  }
+
+  delImage(imageId: string): Promise<void> {
+    return this.redis.del(`Image:${imageId}`).then();
+  }
+
+  getJobQueue(id: string): JobQueue {
+    return new RedisJobQueue(id, this.redis);
   }
 
   get(key: string): Promise<string | null> {

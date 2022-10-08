@@ -23,6 +23,10 @@ export interface Cache {
   ): Promise<void>;
   delInitMp4(streamId: string): Promise<void>;
 
+  getImage(imageId: string): Promise<Buffer | null>;
+  putImage(imageId: string, image: Buffer, expiration: Date): Promise<void>;
+  delImage(imageId: string): Promise<void>;
+
   put(key: string, value: string, expiration: Date): Promise<void>;
   get(key: string): Promise<string | null>;
   del(key: string): Promise<void>;
