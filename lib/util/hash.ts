@@ -10,4 +10,3 @@ export function hashPassword(password: string, salt: string): Promise<Buffer> {
 export function mkFileId(path: string, libraryId: string): string {
   return crypto.createHash("md5").update(path).update(libraryId).digest("hex");
 }
-
