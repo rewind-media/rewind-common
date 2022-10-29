@@ -26,7 +26,8 @@
     "mongodb": "^4.10.0",
     "typescript": "^4.8.4",
     "typescript-logging": "^2.0.2",
-    "typescript-logging-category-style": "^2.0.2"
+    "typescript-logging-category-style": "^2.0.2",
+    "bullmq": "^3.0.0"
   },
   "scripts": {
     "prettier": "npx prettier --write .",
