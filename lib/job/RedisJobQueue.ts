@@ -219,6 +219,12 @@ export class RedisJobQueue<
           job: job,
         } as JobWrapper<Payload, Response>)
       )
+      .then(() =>
+        Promise.all([
+          this.setupStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
+          this.setupStream(this.mkClientStreamId(id), nowPlusOneDay()),
+        ])
+      )
       .then(() => id);
   }
 
@@ -233,4 +239,30 @@ export class RedisJobQueue<
       } as WorkerStreamMessage<Worker>)
     );
   }
+
+  private setupStream(streamId: string, expiration: Date) {
+    return this.redis.xadd(streamId, "*", "init", "init").then((res) => {
+      if (res) {
+        return this.redis
+          .xdel(streamId, res)
+          .then(() =>
+            this.redis.expire(streamId, calculateTtlSecs(expiration))
+          );
+      } else {
+        log.error(
+          "Failed to initialize stream - no id assigned to init message."
+        );
+        return Promise.resolve(0);
+      }
+    });
+  }
+}
+
+// TODO remove
+function nowPlusOneDay(): Date {
+  return new Date(Date.now() + 24 * 3600000);
+}
+
+function calculateTtlSecs(expiration: Date): number {
+  return Math.ceil((expiration.getTime() - new Date().getTime()) / 1000);
 }

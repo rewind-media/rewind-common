@@ -1,10 +1,13 @@
 import { Cache } from "./Cache";
 import Redis from "ioredis";
-import { RedisOptions } from "ioredis/built/redis/RedisOptions";
+import { StreamMetadata } from "../models";
+import { RootLogger } from "../util";
 
 function calculateTtlSecs(expiration: Date): number {
   return Math.ceil((expiration.getTime() - new Date().getTime()) / 1000);
 }
+
+const log = RootLogger.getChildCategory("RedisCache");
 
 export class RedisCache implements Cache {
   private readonly redis: Redis;
@@ -12,28 +15,39 @@ export class RedisCache implements Cache {
     this.redis = redis;
   }
 
-  getM3u8(streamId: string): Promise<string | null> {
-    return this.redis
-      .get(`${streamId}.m3u8`)
-      .then((it) => (it ? Buffer.from(it, "base64").toString("utf8") : null));
+  getStreamMetadata(streamId: string): Promise<StreamMetadata | null> {
+    return this.redis.get(`Hls:${streamId}:Metadata`).then((it) => {
+      try {
+        if (it) {
+          return JSON.parse(it) as StreamMetadata;
+        }
+      } catch (e) {
+        log.error(`Failed to parse StreamMetadata: ${it}.`, e);
+      }
+      return null;
+    });
   }
 
-  putM3u8(streamId: string, m3u8: string, expiration: Date): Promise<void> {
+  putStreamMetadata(
+    streamId: string,
+    m3u8: StreamMetadata,
+    expiration: Date
+  ): Promise<void> {
     return this.redis
       .setex(
-        `${streamId}.m3u8`,
+        `Hls:${streamId}:Metadata`,
         calculateTtlSecs(expiration),
-        Buffer.from(m3u8, "utf8").toString("base64")
+        JSON.stringify(m3u8)
       )
       .then();
   }
 
-  delM3u8(streamId: string): Promise<void> {
-    return this.redis.del(`${streamId}.m3u8`).then();
+  delStreamMetadata(streamId: string): Promise<void> {
+    return this.redis.del(`Hls:${streamId}:Metadata`).then();
   }
 
   getInitMp4(streamId: string): Promise<Buffer | null> {
-    return this.redis.get(`${streamId}.init.mp4`).then((it) => {
+    return this.redis.get(`Hls:${streamId}:init`).then((it) => {
       if (it) {
         return Buffer.from(it, "base64");
       } else return null;
@@ -47,7 +61,7 @@ export class RedisCache implements Cache {
   ): Promise<void> {
     return this.redis
       .setex(
-        `${streamId}.init.mp4`,
+        `Hls:${streamId}:init`,
         calculateTtlSecs(expiration),
         initMp4.toString("base64")
       )
@@ -55,11 +69,11 @@ export class RedisCache implements Cache {
   }
 
   delInitMp4(streamId: string): Promise<void> {
-    return this.redis.del(`${streamId}.init.mp4`).then();
+    return this.redis.del(`Hls:${streamId}:init`).then();
   }
 
   getSegmentM4s(streamId: string, segmentId: number): Promise<Buffer | null> {
-    return this.redis.get(`${streamId}:${segmentId}.m4s`).then((it) => {
+    return this.redis.get(`Hls:${streamId}:seg:${segmentId}`).then((it) => {
       if (it) {
         return Buffer.from(it, "base64");
       } else return null;
@@ -74,7 +88,7 @@ export class RedisCache implements Cache {
   ): Promise<void> {
     return this.redis
       .setex(
-        `${streamId}:${segmentId}.m4s`,
+        `Hls:${streamId}:seg:${segmentId}`,
         calculateTtlSecs(expiration),
         segment.toString("base64")
       )
@@ -82,7 +96,7 @@ export class RedisCache implements Cache {
   }
 
   delSegmentM4s(streamId: string, segmentId: number): Promise<void> {
-    return this.redis.del(`${streamId}:${segmentId}.m4s`).then();
+    return this.redis.del(`Hls:${streamId}:seg:${segmentId}`).then();
   }
 
   getImage(imageId: string): Promise<Buffer | null> {

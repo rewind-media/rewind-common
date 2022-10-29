@@ -1,7 +1,13 @@
+import { StreamMetadata } from "../models";
+
 export interface Cache {
-  getM3u8(id: string): Promise<string | null>;
-  putM3u8(id: string, m3u8: string, expiration: Date): Promise<void>;
-  delM3u8(id: string): Promise<void>;
+  getStreamMetadata(id: string): Promise<StreamMetadata | null>;
+  putStreamMetadata(
+    id: string,
+    m3u8: StreamMetadata,
+    expiration: Date
+  ): Promise<void>;
+  delStreamMetadata(id: string): Promise<void>;
 
   getSegmentM4s(streamId: string, segmentId: number): Promise<Buffer | null>;
   putSegmentM4s(
