@@ -1,2 +1,2 @@
-export * as hash from "./hash";
-export { RootLogger } from "./log";
+export * from "./hash";
+export * from "./log";
