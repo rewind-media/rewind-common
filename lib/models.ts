@@ -5,4 +5,5 @@ export interface StreamSegmentMetadata {
 
 export interface StreamMetadata {
   readonly segments: StreamSegmentMetadata[];
+  readonly complete: boolean;
 }
