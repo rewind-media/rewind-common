@@ -1,16 +1,16 @@
 import session from "express-session";
 import { RootLogger } from "../util";
 import {
+  EpisodeInfo,
   FileInfo,
   ImageInfo,
   Library,
-  SeriesInfo,
-  ShowEpisodeInfo,
-  ShowSeasonInfo,
+  SeasonInfo,
+  ShowInfo,
   User,
 } from "@rewind-media/rewind-protocol";
 import { randomUUID } from "crypto";
-import { hashPassword } from "../util/hash";
+import { hashPassword } from "../util";
 import { isEmpty } from "lodash/fp";
 
 export interface Database {
@@ -32,30 +32,30 @@ export interface Database {
   deleteImage(imageId: string): Promise<boolean>;
   cleanImages(before: Date, libraryId: string): Promise<number>;
 
-  getImage(fileId: string): Promise<FileInfo | undefined>;
+  getFile(fileId: string): Promise<FileInfo | undefined>;
   upsertFile(file: FileInfo): Promise<boolean>;
   deleteFile(fileId: string): Promise<boolean>;
   cleanFiles(before: Date, libraryId: string): Promise<number>;
 
-  listShows(libraryId: string): Promise<SeriesInfo[]>;
-  listShowSeasons(showId: string): Promise<ShowSeasonInfo[]>;
-  listShowSeasonEpisodes(seasonId: string): Promise<ShowEpisodeInfo[]>;
+  listShows(libraryId: string): Promise<ShowInfo[]>;
+  listSeasons(showId: string): Promise<SeasonInfo[]>;
+  listEpisodes(seasonId: string): Promise<EpisodeInfo[]>;
 
-  getShow(showId: string): Promise<SeriesInfo | undefined>;
-  getShowSeason(seasonId: string): Promise<ShowSeasonInfo | undefined>;
-  getShowEpisode(episodeId: string): Promise<ShowEpisodeInfo | undefined>;
+  getShow(showId: string): Promise<ShowInfo | undefined>;
+  getSeason(seasonId: string): Promise<SeasonInfo | undefined>;
+  getEpisode(episodeId: string): Promise<EpisodeInfo | undefined>;
 
-  upsertShow(show: SeriesInfo): Promise<boolean>;
-  upsertShowSeason(season: ShowSeasonInfo): Promise<boolean>;
-  upsertShowEpisode(episode: ShowEpisodeInfo): Promise<boolean>;
+  upsertShow(show: ShowInfo): Promise<boolean>;
+  upsertSeason(season: SeasonInfo): Promise<boolean>;
+  upsertEpisode(episode: EpisodeInfo): Promise<boolean>;
 
   deleteShow(showId: string): Promise<boolean>;
-  deleteShowSeason(seasonId: string): Promise<boolean>;
-  deleteShowEpisode(episodeId: string): Promise<boolean>;
+  deleteSeason(seasonId: string): Promise<boolean>;
+  deleteEpisode(episodeId: string): Promise<boolean>;
 
   cleanShows(before: Date, libraryId: string): Promise<number>;
-  cleanShowSeasons(before: Date, libraryId: string): Promise<number>;
-  cleanShowEpisodes(before: Date, libraryId: string): Promise<number>;
+  cleanSeasons(before: Date, libraryId: string): Promise<number>;
+  cleanEpisodes(before: Date, libraryId: string): Promise<number>;
 }
 
 export abstract class AbstractDatabase implements Database {
@@ -91,9 +91,9 @@ export abstract class AbstractDatabase implements Database {
 
   abstract cleanImages(before: Date, libraryId: string): Promise<number>;
 
-  abstract cleanShowEpisodes(before: Date, libraryId: string): Promise<number>;
+  abstract cleanEpisodes(before: Date, libraryId: string): Promise<number>;
 
-  abstract cleanShowSeasons(before: Date, libraryId: string): Promise<number>;
+  abstract cleanSeasons(before: Date, libraryId: string): Promise<number>;
 
   abstract cleanShows(before: Date, libraryId: string): Promise<number>;
 
@@ -103,34 +103,33 @@ export abstract class AbstractDatabase implements Database {
 
   abstract deleteShow(showId: string): Promise<boolean>;
 
-  abstract deleteShowEpisode(episodeId: string): Promise<boolean>;
+  abstract deleteEpisode(episodeId: string): Promise<boolean>;
 
-  abstract deleteShowSeason(seasonId: string): Promise<boolean>;
+  abstract deleteSeason(seasonId: string): Promise<boolean>;
 
   abstract deleteUser(username: string): Promise<boolean>;
 
   abstract getImage(imageId: string): Promise<ImageInfo | undefined>;
-  abstract getImage(fileId: string): Promise<FileInfo | undefined>;
+
+  abstract getFile(fileId: string): Promise<FileInfo | undefined>;
 
   abstract getLibrary(libraryId: string): Promise<Library | undefined>;
 
-  abstract getShow(showId: string): Promise<SeriesInfo | undefined>;
+  abstract getShow(showId: string): Promise<ShowInfo | undefined>;
 
-  abstract getShowEpisode(
-    episodeId: string
-  ): Promise<ShowEpisodeInfo | undefined>;
+  abstract getEpisode(episodeId: string): Promise<EpisodeInfo | undefined>;
 
-  abstract getShowSeason(seasonId: string): Promise<ShowSeasonInfo | undefined>;
+  abstract getSeason(seasonId: string): Promise<SeasonInfo | undefined>;
 
   abstract getUser(username: string): Promise<User | undefined>;
 
   abstract listLibraries(): Promise<Library[]>;
 
-  abstract listShowSeasonEpisodes(seasonId: string): Promise<ShowEpisodeInfo[]>;
+  abstract listEpisodes(seasonId: string): Promise<EpisodeInfo[]>;
 
-  abstract listShowSeasons(showId: string): Promise<ShowSeasonInfo[]>;
+  abstract listSeasons(showId: string): Promise<SeasonInfo[]>;
 
-  abstract listShows(libraryId: string): Promise<SeriesInfo[]>;
+  abstract listShows(libraryId: string): Promise<ShowInfo[]>;
 
   abstract listUsers(): Promise<User[]>;
 
@@ -144,11 +143,11 @@ export abstract class AbstractDatabase implements Database {
 
   abstract upsertLibrary(library: Library): Promise<boolean>;
 
-  abstract upsertShow(show: SeriesInfo): Promise<boolean>;
+  abstract upsertShow(show: ShowInfo): Promise<boolean>;
 
-  abstract upsertShowEpisode(episode: ShowEpisodeInfo): Promise<boolean>;
+  abstract upsertEpisode(episode: EpisodeInfo): Promise<boolean>;
 
-  abstract upsertShowSeason(season: ShowSeasonInfo): Promise<boolean>;
+  abstract upsertSeason(season: SeasonInfo): Promise<boolean>;
 }
 
 export const DatabaseLogger = RootLogger.getChildCategory("Database");

@@ -8,10 +8,9 @@ import {
   FileInfo,
   ImageInfo,
   Library,
-  LibraryType,
-  SeriesInfo,
-  ShowEpisodeInfo,
-  ShowSeasonInfo,
+  ShowInfo,
+  EpisodeInfo,
+  SeasonInfo,
   StreamProps,
   User,
   UserPermissions,
@@ -19,23 +18,23 @@ import {
 import _ from "lodash";
 
 export interface MongoClientProps {
-  host: string;
-  port: number;
-  dbName: string;
-  username: string;
-  password: string;
+  readonly host: string;
+  readonly port: number;
+  readonly dbName: string;
+  readonly username: string;
+  readonly password: string;
 }
 
 export interface MongoDbProps {
-  client: MongoClient;
-  dbName: string;
+  readonly client: MongoClient;
+  readonly dbName: string;
 }
 
 interface MongoUser {
-  permissions: UserPermissions;
-  username: string;
-  salt: string;
-  hashedPass: Binary;
+  readonly permissions: UserPermissions;
+  readonly username: string;
+  readonly salt: string;
+  readonly hashedPass: Binary;
 }
 
 const log = DatabaseLogger.getChildCategory("Mongo");
@@ -48,9 +47,9 @@ export class MongoDatabase extends AbstractDatabase {
   private readonly dbName: string;
   private readonly libraries: Collection<Library>;
   private readonly files: Collection<FileInfo>;
-  private readonly shows: Collection<SeriesInfo>;
-  private readonly showsEpisodes: Collection<ShowEpisodeInfo>;
-  private readonly showsSeasons: Collection<ShowSeasonInfo>;
+  private readonly shows: Collection<ShowInfo>;
+  private readonly showsEpisodes: Collection<EpisodeInfo>;
+  private readonly showsSeasons: Collection<SeasonInfo>;
   private readonly images: Collection<ImageInfo>;
 
   constructor(props: MongoDbProps) {
@@ -62,9 +61,9 @@ export class MongoDatabase extends AbstractDatabase {
     this.libraries = this.db.collection<Library>("Libraries");
     this.files = this.db.collection<FileInfo>("Files");
     this.images = this.db.collection<ImageInfo>("Images");
-    this.showsEpisodes = this.db.collection<ShowEpisodeInfo>("ShowEpisodes");
-    this.showsSeasons = this.db.collection<ShowSeasonInfo>("ShowSeasons");
-    this.shows = this.db.collection<SeriesInfo>("Shows");
+    this.showsEpisodes = this.db.collection<EpisodeInfo>("ShowEpisodes");
+    this.showsSeasons = this.db.collection<SeasonInfo>("ShowSeasons");
+    this.shows = this.db.collection<ShowInfo>("Shows");
     this.users = this.db.collection<MongoUser>("Users");
   }
 
@@ -184,44 +183,44 @@ export class MongoDatabase extends AbstractDatabase {
 
   // Shows
 
-  getShow(fileId: string): Promise<SeriesInfo | undefined> {
-    return this.shows.findOne({ id: fileId }).then((it) => it as SeriesInfo);
+  getShow(fileId: string): Promise<ShowInfo | undefined> {
+    return this.shows.findOne({ id: fileId }).then((it) => it as ShowInfo);
   }
 
-  getShowSeason(seasonId: string): Promise<ShowSeasonInfo | undefined> {
+  getSeason(seasonId: string): Promise<SeasonInfo | undefined> {
     return this.showsSeasons
       .findOne({ id: seasonId })
-      .then((it) => it as ShowSeasonInfo);
+      .then((it) => it as SeasonInfo);
   }
 
-  getShowEpisode(episodeId: string): Promise<ShowEpisodeInfo | undefined> {
+  getEpisode(episodeId: string): Promise<EpisodeInfo | undefined> {
     return this.showsEpisodes
       .findOne({ id: episodeId })
-      .then((it) => it as ShowEpisodeInfo);
+      .then((it) => it as EpisodeInfo);
   }
 
-  listShows(libraryId: string): Promise<SeriesInfo[]> {
+  listShows(libraryId: string): Promise<ShowInfo[]> {
     return this.shows
       .find({ libraryName: libraryId })
       .toArray()
-      .then((shows) => shows.map((show) => show as SeriesInfo));
+      .then((shows) => shows.map((show) => show as ShowInfo));
   }
 
-  listShowSeasons(showId: string): Promise<ShowSeasonInfo[]> {
+  listSeasons(showId: string): Promise<SeasonInfo[]> {
     return this.showsSeasons
       .find({ showId: showId })
       .toArray()
-      .then((shows) => shows.map((show) => show as ShowSeasonInfo));
+      .then((shows) => shows.map((show) => show as SeasonInfo));
   }
 
-  listShowSeasonEpisodes(seasonId: string): Promise<ShowEpisodeInfo[]> {
+  listEpisodes(seasonId: string): Promise<EpisodeInfo[]> {
     return this.showsEpisodes
       .find({ seasonId: seasonId })
       .toArray()
-      .then((shows) => shows.map((show) => show as ShowEpisodeInfo));
+      .then((shows) => shows.map((show) => show as EpisodeInfo));
   }
 
-  upsertShow(show: SeriesInfo): Promise<boolean> {
+  upsertShow(show: ShowInfo): Promise<boolean> {
     return this.shows
       .updateOne({ id: show.id }, { $set: show as any }, { upsert: true })
       .then(
@@ -230,7 +229,7 @@ export class MongoDatabase extends AbstractDatabase {
       );
   }
 
-  upsertShowEpisode(episode: ShowEpisodeInfo): Promise<boolean> {
+  upsertEpisode(episode: EpisodeInfo): Promise<boolean> {
     return this.showsEpisodes
       .updateOne({ id: episode.id }, { $set: episode as any }, { upsert: true })
       .then(
@@ -239,7 +238,7 @@ export class MongoDatabase extends AbstractDatabase {
       );
   }
 
-  upsertShowSeason(season: ShowSeasonInfo): Promise<boolean> {
+  upsertSeason(season: SeasonInfo): Promise<boolean> {
     return this.showsSeasons
       .updateOne({ id: season.id }, { $set: season as any }, { upsert: true })
       .then(
@@ -253,13 +252,13 @@ export class MongoDatabase extends AbstractDatabase {
       .deleteOne({ id: fileId })
       .then((it) => it.deletedCount == 1);
   }
-  deleteShowEpisode(episodeId: string): Promise<boolean> {
+  deleteEpisode(episodeId: string): Promise<boolean> {
     return this.showsEpisodes
       .deleteOne({ id: episodeId })
       .then((it) => it.deletedCount == 1);
   }
 
-  deleteShowSeason(seasonId: string): Promise<boolean> {
+  deleteSeason(seasonId: string): Promise<boolean> {
     return this.showsSeasons
       .deleteOne({ id: seasonId })
       .then((it) => it.deletedCount == 1);
@@ -273,7 +272,7 @@ export class MongoDatabase extends AbstractDatabase {
       })
       .then((res) => res.deletedCount);
   }
-  cleanShowEpisodes(before: Date, libraryName: string): Promise<number> {
+  cleanEpisodes(before: Date, libraryName: string): Promise<number> {
     return this.showsEpisodes
       .deleteMany({
         lastUpdated: { $lt: before },
@@ -282,7 +281,7 @@ export class MongoDatabase extends AbstractDatabase {
       .then((res) => res.deletedCount);
   }
 
-  cleanShowSeasons(before: Date, libraryName: string): Promise<number> {
+  cleanSeasons(before: Date, libraryName: string): Promise<number> {
     return this.showsSeasons
       .deleteMany({
         lastUpdated: { $lt: before },
