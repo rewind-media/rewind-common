@@ -99,6 +99,10 @@ export class RedisCache implements Cache {
     return this.redis.del(`Hls:${streamId}:seg:${segmentId}`).then();
   }
 
+  expireImage(imageId: string, seconds: number): Promise<void> {
+    return this.redis.expire(`Image:${imageId}`, seconds).then();
+  }
+
   getImage(imageId: string): Promise<Buffer | null> {
     return this.redis.get(`Image:${imageId}`).then((it) => {
       if (it) {
@@ -107,13 +111,13 @@ export class RedisCache implements Cache {
     });
   }
 
-  putImage(imageId: string, image: Buffer, expiration: Date): Promise<void> {
+  putImage(
+    imageId: string,
+    image: Buffer,
+    expirationSecs: number
+  ): Promise<void> {
     return this.redis
-      .setex(
-        `Image:${imageId}`,
-        calculateTtlSecs(expiration),
-        image.toString("base64")
-      )
+      .setex(`Image:${imageId}`, expirationSecs, image.toString("base64"))
       .then();
   }
 

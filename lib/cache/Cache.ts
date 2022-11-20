@@ -27,8 +27,13 @@ export interface Cache {
   delInitMp4(streamId: string): Promise<void>;
 
   getImage(imageId: string): Promise<Buffer | null>;
-  putImage(imageId: string, image: Buffer, expiration: Date): Promise<void>;
+  putImage(
+    imageId: string,
+    image: Buffer,
+    expirationSecs: number
+  ): Promise<void>;
   delImage(imageId: string): Promise<void>;
+  expireImage(imageId: string, seconds: number): Promise<void>;
 
   put(key: string, value: string, expiration: Date): Promise<void>;
   get(key: string): Promise<string | null>;

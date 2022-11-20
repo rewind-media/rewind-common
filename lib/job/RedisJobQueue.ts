@@ -221,8 +221,8 @@ export class RedisJobQueue<
       )
       .then(() =>
         Promise.all([
-          this.setupStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
-          this.setupStream(this.mkClientStreamId(id), nowPlusOneDay()),
+          this.setupWorkerStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
+          this.setupClientStream(this.mkClientStreamId(id), nowPlusOneDay()),
         ])
       )
       .then(() => id);
@@ -240,8 +240,28 @@ export class RedisJobQueue<
     );
   }
 
-  private setupStream(streamId: string, expiration: Date) {
-    return this.redis.xadd(streamId, "*", "init", "init").then((res) => {
+  private setupWorkerStream = (streamId: string, expiration: Date) =>
+    this.setupStream(
+      streamId,
+      expiration,
+      JSON.stringify({
+        type: "init",
+        payload: [] as any[],
+      } as ClientStreamMessage<Client>)
+    );
+
+  private setupClientStream = (streamId: string, expiration: Date) =>
+    this.setupStream(
+      streamId,
+      expiration,
+      JSON.stringify({
+        type: "init",
+        payload: [] as any[],
+      } as WorkerStreamMessage<Worker>)
+    );
+
+  private setupStream(streamId: string, expiration: Date, message: string) {
+    return this.redis.xadd(streamId, "*", randomUUID(), message).then((res) => {
       if (res) {
         return this.redis
           .xdel(streamId, res)

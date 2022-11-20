@@ -13,12 +13,14 @@ export interface WorkerContext<Response = void> {
 }
 
 export interface ClientEvents<Response> extends IClientEvents {
+  init: () => void;
   status: (status: JobStatus) => void;
   success: (response: Response) => void;
-  fail: (reason: String) => void;
+  fail: (reason: string) => void;
 }
 
 export interface WorkerEvents extends IWorkerEvents {
+  init: () => void;
   cancel: () => void;
 }
 
