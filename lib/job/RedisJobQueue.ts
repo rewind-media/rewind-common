@@ -209,8 +209,18 @@ export class RedisJobQueue<
     return emitter;
   }
 
-  submit(job: Job<Payload, Response, Client, Worker>): Promise<JobId> {
+  async submit(
+    job: Job<Payload, Response, Client, Worker>,
+    preHook?: (emitter: ClientEventEmitter<Client>) => void
+  ): Promise<JobId> {
     const id: JobId = randomUUID();
+    await Promise.all([
+      this.setupWorkerStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
+      this.setupClientStream(this.mkClientStreamId(id), nowPlusOneDay()),
+    ]);
+    if (preHook) {
+      await preHook(this.monitor(id));
+    }
     return this.redis
       .lpush(
         this.queueId,
@@ -218,12 +228,6 @@ export class RedisJobQueue<
           id: id,
           job: job,
         } as JobWrapper<Payload, Response>)
-      )
-      .then(() =>
-        Promise.all([
-          this.setupWorkerStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
-          this.setupClientStream(this.mkClientStreamId(id), nowPlusOneDay()),
-        ])
       )
       .then(() => id);
   }

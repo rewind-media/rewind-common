@@ -91,7 +91,10 @@ export interface JobQueue<
     Worker
   >
 > {
-  submit(job: JobExtension): Promise<JobId>;
+  submit(
+    job: JobExtension,
+    preHook?: (emitter: ClientEventEmitter<Client>) => void
+  ): Promise<JobId>;
   register(
     handler: (
       job: JobExtension,
