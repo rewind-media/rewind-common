@@ -76,10 +76,10 @@ export class RedisJobQueue<
   private readStream(
     streamId: string,
     handler: (messages: string) => void,
-    lastId: string = "$"
+    lastId: string = "0-0"
   ) {
     const conn = this.redis.duplicate();
-    const read = (internalLastId: string = "$") => {
+    const read = (internalLastId: string = "0-0") => {
       conn
         .xread("BLOCK", 0, "STREAMS", streamId, internalLastId)
         .then((results) => {
