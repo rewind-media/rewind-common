@@ -1,6 +1,6 @@
 {
   "name": "@rewind-media/rewind-common",
-  "version": "0.1.39",
+  "version": "0.1.40",
   "license": "AGPLv3",
   "description": "Common models and utilities for Rewind.",
   "repository": {
