@@ -28,10 +28,7 @@ export type IWorkerEvents = { [key: string | symbol]: (...args: any[]) => any };
 export type IClientEvents = { [key: string | symbol]: (...args: any[]) => any };
 
 export interface Job<
-  Payload, // TODO defaults & extends {} | undefined
-  Response, // TODO defaults & extends {} | undefined
-  Client extends ClientEvents<Response> = ClientEvents<Response>,
-  Worker extends WorkerEvents = WorkerEvents
+  Payload // TODO defaults & extends {} | undefined
 > {
   readonly payload: Payload;
 }
@@ -75,7 +72,9 @@ export class WorkerEventEmitter<
   }
 }
 
-export interface JobWorker<T, U> {}
+export class JobWorker<T, U> {
+  constructor(public currentPayload?: T, public lastResponse?: U) {}
+}
 
 export type JobId = string;
 
@@ -84,12 +83,7 @@ export interface JobQueue<
   Response,
   Client extends ClientEvents<Response> = ClientEvents<Response>,
   Worker extends WorkerEvents = WorkerEvents,
-  JobExtension extends Job<Payload, Response, Client, Worker> = Job<
-    Payload,
-    Response,
-    Client,
-    Worker
-  >
+  JobExtension extends Job<Payload> = Job<Payload>
 > {
   submit(
     job: JobExtension,
@@ -102,7 +96,6 @@ export interface JobQueue<
       workerEvents: WorkerEventEmitter<Worker>
     ) => void
   ): JobWorker<Payload, Response>;
-  // TODO first vs latest
   monitor(jobId: JobId): ClientEventEmitter<Client>;
   cancel(jobId: JobId): void;
 }

@@ -30,15 +30,7 @@ interface WorkerStreamMessage<Worker extends WorkerEvents = WorkerEvents> {
 
 interface JobWrapper<
   Payload,
-  Response,
-  Client extends ClientEvents<Response> = ClientEvents<Response>,
-  Worker extends WorkerEvents = WorkerEvents,
-  JobExtension extends Job<Payload, Response, Client, Worker> = Job<
-    Payload,
-    Response,
-    Client,
-    Worker
-  >
+  JobExtension extends Job<Payload> = Job<Payload>
 > {
   id: JobId;
   job: JobExtension;
@@ -51,12 +43,7 @@ export class RedisJobQueue<
   Response,
   Client extends ClientEvents<Response> = ClientEvents<Response>,
   Worker extends WorkerEvents = WorkerEvents,
-  JobExtension extends Job<Payload, Response, Client, Worker> = Job<
-    Payload,
-    Response,
-    Client,
-    Worker
-  >
+  JobExtension extends Job<Payload> = Job<Payload>
 > implements JobQueue<Payload, Response, Client, Worker, JobExtension>
 {
   private readonly redis: Redis;
@@ -83,8 +70,8 @@ export class RedisJobQueue<
       conn
         .xread("BLOCK", 0, "STREAMS", streamId, internalLastId)
         .then((results) => {
-          if (results) {
-            const [key, messages] = results[0];
+          if (results && results[0]) {
+            const [, messages] = results[0];
             const lastMessage = last(messages);
             const latestLastId = lastMessage ? lastMessage[0] : internalLastId;
             messages
@@ -124,6 +111,7 @@ export class RedisJobQueue<
       workerEvents: WorkerEventEmitter<Worker>
     ) => void
   ): JobWorker<Payload, Response> {
+    const worker = new JobWorker<Payload, Response>();
     const read = () => {
       this.redis
         .duplicate()
@@ -131,17 +119,14 @@ export class RedisJobQueue<
         .then(async (item) => {
           if (item) {
             const [, rawWrapper] = item;
-            const wrapper: JobWrapper<
-              Payload,
-              Response,
-              Client,
-              Worker,
-              JobExtension
-            > = JSON.parse(rawWrapper);
+            const wrapper: JobWrapper<Payload, JobExtension> =
+              JSON.parse(rawWrapper);
+            worker.currentPayload = wrapper.job.payload;
             await handler(
               wrapper.job,
               {
                 success: (result) => {
+                  worker.lastResponse = result;
                   this.sendStatus(wrapper.id, JobStatus.SUCCESS);
                   this.sendSuccess(wrapper.id, result);
                 },
@@ -160,7 +145,7 @@ export class RedisJobQueue<
         });
     };
     read();
-    return {};
+    return worker;
   }
 
   private sendStatus(jobId: JobId, status: JobStatus) {
@@ -210,7 +195,7 @@ export class RedisJobQueue<
   }
 
   async submit(
-    job: Job<Payload, Response, Client, Worker>,
+    job: JobExtension,
     preHook?: (emitter: ClientEventEmitter<Client>) => void
   ): Promise<JobId> {
     const id: JobId = randomUUID();
@@ -227,7 +212,7 @@ export class RedisJobQueue<
         JSON.stringify({
           id: id,
           job: job,
-        } as JobWrapper<Payload, Response>)
+        } as JobWrapper<Payload, JobExtension>)
       )
       .then(() => id);
   }
