@@ -14,6 +14,7 @@ import Redis from "ioredis";
 import { randomUUID } from "crypto";
 import { last } from "lodash/fp";
 import { RootLogger } from "../util";
+import { Duration } from "durr";
 
 interface ClientStreamMessage<
   Response,
@@ -200,8 +201,14 @@ export class RedisJobQueue<
   ): Promise<JobId> {
     const id: JobId = randomUUID();
     await Promise.all([
-      this.setupWorkerStream(this.mkWorkerStreamId(id), nowPlusOneDay()),
-      this.setupClientStream(this.mkClientStreamId(id), nowPlusOneDay()),
+      this.setupWorkerStream(
+        this.mkWorkerStreamId(id),
+        Duration.days(1).after()
+      ),
+      this.setupClientStream(
+        this.mkClientStreamId(id),
+        Duration.days(1).after()
+      ),
     ]);
     if (preHook) {
       await preHook(this.monitor(id));
@@ -267,11 +274,6 @@ export class RedisJobQueue<
   }
 }
 
-// TODO remove
-function nowPlusOneDay(): Date {
-  return new Date(Date.now() + 24 * 3600000);
-}
-
 function calculateTtlSecs(expiration: Date): number {
-  return Math.ceil((expiration.getTime() - new Date().getTime()) / 1000);
+  return Math.ceil(Duration.between(new Date(), expiration).seconds);
 }

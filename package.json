@@ -20,6 +20,7 @@
     "@types/node": "^16.18.6",
     "config": "^3.3.8",
     "connect-mongo": "^4.6.0",
+    "durr": "^0.0.3",
     "express-session": "^1.17.3",
     "ioredis": "^5.2.4",
     "lodash": "^4.17.21",

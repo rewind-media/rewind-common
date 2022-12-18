@@ -2,9 +2,10 @@ import { Cache } from "./Cache";
 import Redis from "ioredis";
 import { StreamMetadata } from "../models";
 import { RootLogger } from "../util";
+import { Duration } from "durr";
 
 function calculateTtlSecs(expiration: Date): number {
-  return Math.ceil((expiration.getTime() - new Date().getTime()) / 1000);
+  return Math.ceil(Duration.between(new Date(), expiration).seconds);
 }
 
 const log = RootLogger.getChildCategory("RedisCache");
