@@ -113,9 +113,9 @@ export class RedisJobQueue<
     ) => void
   ): JobWorker<Payload, Response> {
     const worker = new JobWorker<Payload, Response>();
+    const redisInstance = this.redis.duplicate()
     const read = () => {
-      this.redis
-        .duplicate()
+      redisInstance
         .blpop(this.queueId, 0)
         .then(async (item) => {
           if (item) {
