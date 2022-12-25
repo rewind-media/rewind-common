@@ -113,37 +113,35 @@ export class RedisJobQueue<
     ) => void
   ): JobWorker<Payload, Response> {
     const worker = new JobWorker<Payload, Response>();
-    const redisInstance = this.redis.duplicate()
+    const redisInstance = this.redis.duplicate();
     const read = () => {
-      redisInstance
-        .blpop(this.queueId, 0)
-        .then(async (item) => {
-          if (item) {
-            const [, rawWrapper] = item;
-            const wrapper: JobWrapper<Payload, JobExtension> =
-              JSON.parse(rawWrapper);
-            worker.currentPayload = wrapper.job.payload;
-            await handler(
-              wrapper.job,
-              {
-                success: (result) => {
-                  worker.lastResponse = result;
-                  this.sendStatus(wrapper.id, JobStatus.SUCCESS);
-                  this.sendSuccess(wrapper.id, result);
-                },
-                fail: (reason) => {
-                  this.sendStatus(wrapper.id, JobStatus.FAIL);
-                  this.sendFailure(wrapper.id, reason);
-                },
-                start: () => {
-                  this.sendStatus(wrapper.id, JobStatus.START);
-                },
+      redisInstance.blpop(this.queueId, 0).then(async (item) => {
+        if (item) {
+          const [, rawWrapper] = item;
+          const wrapper: JobWrapper<Payload, JobExtension> =
+            JSON.parse(rawWrapper);
+          worker.currentPayload = wrapper.job.payload;
+          await handler(
+            wrapper.job,
+            {
+              success: (result) => {
+                worker.lastResponse = result;
+                this.sendStatus(wrapper.id, JobStatus.SUCCESS);
+                this.sendSuccess(wrapper.id, result);
               },
-              this.mkWorkerEventEmitter(wrapper.id)
-            );
-          }
-          return read();
-        });
+              fail: (reason) => {
+                this.sendStatus(wrapper.id, JobStatus.FAIL);
+                this.sendFailure(wrapper.id, reason);
+              },
+              start: () => {
+                this.sendStatus(wrapper.id, JobStatus.START);
+              },
+            },
+            this.mkWorkerEventEmitter(wrapper.id)
+          );
+        }
+        return read();
+      });
     };
     read();
     return worker;
