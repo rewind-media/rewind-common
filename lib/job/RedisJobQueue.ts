@@ -9,12 +9,12 @@ import {
   WorkerContext,
   WorkerEventEmitter,
   WorkerEvents,
-} from "./JobQueue";
-import Redis from "ioredis";
+} from "./JobQueue.js";
+import { Redis } from "ioredis";
 import { randomUUID } from "crypto";
-import { last } from "lodash/fp";
-import { RootLogger } from "../util";
+import { RootLogger } from "../util/log.js";
 import { Duration } from "durr";
+import { List } from "immutable";
 
 interface ClientStreamMessage<
   Response,
@@ -73,7 +73,7 @@ export class RedisJobQueue<
         .then((results) => {
           if (results && results[0]) {
             const [, messages] = results[0];
-            const lastMessage = last(messages);
+            const lastMessage = List(messages).last();
             const latestLastId = lastMessage ? lastMessage[0] : internalLastId;
             messages
               .flatMap(([, fields]) =>

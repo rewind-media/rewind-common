@@ -1,7 +1,7 @@
-import { Cache } from "./Cache";
-import Redis from "ioredis";
-import { StreamMetadata } from "../models";
-import { RootLogger } from "../util";
+import { Cache } from "./Cache.js";
+import { Redis } from "ioredis";
+import { StreamMetadata } from "../models.js";
+import { RootLogger } from "../util/log.js";
 import { Duration } from "durr";
 
 function calculateTtlSecs(expiration: Date): number {

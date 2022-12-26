@@ -1,4 +1,4 @@
-import { StreamMetadata } from "../models";
+import { StreamMetadata } from "../models.js";
 
 export interface Cache {
   getStreamMetadata(id: string): Promise<StreamMetadata | null>;

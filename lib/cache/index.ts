@@ -1,2 +1,2 @@
-export { Cache } from "./Cache";
-export { RedisCache } from "./RedisCache";
+export { Cache } from "./Cache.js";
+export { RedisCache } from "./RedisCache.js";

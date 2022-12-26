@@ -1,6 +1,6 @@
 import conf from "config";
-import { MongoClientProps } from "./database";
-import { RedisOptions } from "ioredis/built/redis/RedisOptions";
+import { MongoClientProps } from "./database/index.js";
+import { RedisOptions } from "ioredis/built/redis/RedisOptions.js";
 
 type DbConfig = MongoClientProps;
 type CacheConfig = RedisOptions;

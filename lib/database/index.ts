@@ -1,8 +1,8 @@
-export { Database } from "./Database";
+export { Database } from "./Database.js";
 
 export {
   MongoDatabase,
   MongoDbProps,
   MongoClientProps,
   mkMongoDatabase,
-} from "./MongoDatabase";
+} from "./MongoDatabase.js";

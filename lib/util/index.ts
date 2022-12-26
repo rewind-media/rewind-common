@@ -1,3 +1,3 @@
-export * from "./file";
-export * from "./hash";
-export * from "./log";
+export * from "./file.js";
+export * from "./hash.js";
+export * from "./log.js";

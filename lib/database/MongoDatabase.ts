@@ -2,8 +2,8 @@ import { Binary, Collection, Db, MongoClient, UpdateResult } from "mongodb";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import { randomUUID } from "crypto";
-import { hashPassword } from "../util/hash";
-import { AbstractDatabase, Database, DatabaseLogger } from "./Database";
+import { hashPassword } from "../util/hash.js";
+import { AbstractDatabase, Database, DatabaseLogger } from "./Database.js";
 import {
   FileInfo,
   ImageInfo,
@@ -15,8 +15,7 @@ import {
   User,
   UserPermissions,
 } from "@rewind-media/rewind-protocol";
-import _ from "lodash";
-
+import { List } from "immutable";
 export interface MongoClientProps {
   readonly host: string;
   readonly port: number;
@@ -72,7 +71,7 @@ export class MongoDatabase extends AbstractDatabase {
     return this.users
       .find({ username: username })
       .toArray()
-      .then((x) => _.first(x))
+      .then((x) => List(x).first())
       .then((x) => (x ? MongoDatabase.toUser(x) : undefined));
   }
 
@@ -125,7 +124,10 @@ export class MongoDatabase extends AbstractDatabase {
 
   // Files
   getFile(fileId: string): Promise<FileInfo | undefined> {
-    return this.files.find({ id: fileId }).toArray().then(_.first);
+    return this.files
+      .find({ id: fileId })
+      .toArray()
+      .then((it) => List(it).first());
   }
 
   upsertFile(file: FileInfo): Promise<boolean> {
@@ -154,7 +156,10 @@ export class MongoDatabase extends AbstractDatabase {
 
   // Images
   getImage(imageId: string): Promise<ImageInfo | undefined> {
-    return this.images.find({ id: imageId }).toArray().then(_.first);
+    return this.images
+      .find({ id: imageId })
+      .toArray()
+      .then((it) => List(it).first());
   }
 
   upsertImage(image: ImageInfo): Promise<boolean> {
@@ -300,7 +305,7 @@ export class MongoDatabase extends AbstractDatabase {
       .then(() => log.info("MongoDb initialized"))
       .then(() => this.listUsers())
       .then((userArr) => {
-        if (_.isEmpty(userArr)) {
+        if (List(userArr).isEmpty()) {
           const username = "rewind-" + randomUUID();
           const password = randomUUID();
           const salt = randomUUID();

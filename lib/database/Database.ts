@@ -1,5 +1,5 @@
 import session from "express-session";
-import { RootLogger } from "../util";
+import { RootLogger } from "../util/log.js";
 import {
   EpisodeInfo,
   FileInfo,
@@ -10,8 +10,8 @@ import {
   User,
 } from "@rewind-media/rewind-protocol";
 import { randomUUID } from "crypto";
-import { hashPassword } from "../util";
-import { isEmpty } from "lodash/fp";
+import { hashPassword } from "../util/hash.js";
+import { List } from "immutable";
 
 export interface Database {
   initialize(): Promise<Database>;
@@ -62,7 +62,7 @@ export abstract class AbstractDatabase implements Database {
   initialize(): Promise<Database> {
     return this.listUsers()
       .then((userArr) => {
-        if (isEmpty(userArr)) {
+        if (List(userArr).isEmpty()) {
           const username = "rewind-" + randomUUID();
           const password = randomUUID();
           const salt = randomUUID();
