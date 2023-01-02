@@ -1,21 +1,9 @@
 import EventEmitter from "events";
+import "durr";
 
-export enum JobStatus {
-  START = "START",
-  SUCCESS = "SUCCESS",
-  FAIL = "FAIL",
-}
-
-export interface WorkerContext<Response = void> {
-  start: () => void;
-  success: (result: Response) => void;
-  fail: (reason: string) => void;
-}
-
-export interface ClientEvents<Response> extends IClientEvents {
+export interface ClientEvents<Response = undefined> extends IClientEvents {
   init: () => void;
-  status: (status: JobStatus) => void;
-  success: (response: Response) => void;
+  success: (response?: Response) => void;
   fail: (reason: string) => void;
 }
 
@@ -26,11 +14,18 @@ export interface WorkerEvents extends IWorkerEvents {
 
 export type IWorkerEvents = { [key: string | symbol]: (...args: any[]) => any };
 export type IClientEvents = { [key: string | symbol]: (...args: any[]) => any };
-
-export interface Job<
-  Payload // TODO defaults & extends {} | undefined
-> {
+export type BasePayload = Record<any, any> | undefined;
+export interface Job<Payload extends BasePayload = {}> {
   readonly payload: Payload;
+}
+
+export function isJob<Payload extends BasePayload = {}>(
+  it: any,
+  payloadTypeGuard: (p: any) => p is Payload = function (p: any): p is Payload {
+    return typeof p == "object";
+  }
+): it is Job {
+  return it && it.payload && payloadTypeGuard(it.payload) == true;
 }
 
 export interface ClientEventEmitter<
@@ -79,20 +74,19 @@ export class JobWorker<T, U> {
 export type JobId = string;
 
 export interface JobQueue<
-  Payload,
-  Response,
+  Payload extends BasePayload = {},
+  Response = undefined,
   Client extends ClientEvents<Response> = ClientEvents<Response>,
-  Worker extends WorkerEvents = WorkerEvents,
-  JobExtension extends Job<Payload> = Job<Payload>
+  Worker extends WorkerEvents = WorkerEvents
 > {
   submit(
-    job: JobExtension,
+    job: Job<Payload>,
     preHook?: (emitter: ClientEventEmitter<Client>) => void
   ): Promise<JobId>;
   register(
     handler: (
-      job: JobExtension,
-      context: WorkerContext<Response>,
+      job: Job<Payload>,
+      context: ClientEventEmitter<Response>,
       workerEvents: WorkerEventEmitter<Worker>
     ) => void
   ): JobWorker<Payload, Response>;

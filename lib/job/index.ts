@@ -1,7 +1,15 @@
-import { Job, JobQueue } from "./JobQueue.js";
+import { ClientEvents, Job, JobQueue } from "./JobQueue.js";
 import { StreamProps } from "@rewind-media/rewind-protocol";
 
 export type StreamJob = Job<StreamProps>;
-export type StreamJobQueue = JobQueue<StreamProps, undefined>;
+
+export interface StreamClientEvents extends ClientEvents<undefined> {
+  start: () => void;
+}
+export type StreamJobQueue = JobQueue<
+  StreamProps,
+  undefined,
+  StreamClientEvents
+>;
 export * from "./JobQueue.js";
 export * from "./RedisJobQueue.js";

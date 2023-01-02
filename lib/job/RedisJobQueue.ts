@@ -1,14 +1,12 @@
 import {
   ClientEventEmitter,
   ClientEvents,
-  Job,
   JobId,
   JobQueue,
-  JobStatus,
   JobWorker,
-  WorkerContext,
   WorkerEventEmitter,
   WorkerEvents,
+  Job,
 } from "./JobQueue.js";
 import { Redis } from "ioredis";
 import { randomUUID } from "crypto";
@@ -29,23 +27,43 @@ interface WorkerStreamMessage<Worker extends WorkerEvents = WorkerEvents> {
   payload: Parameters<Worker[keyof Worker]>;
 }
 
-interface JobWrapper<
-  Payload,
-  JobExtension extends Job<Payload> = Job<Payload>
-> {
+interface JobWrapper<Payload extends Record<any, any> = {}> {
   id: JobId;
-  job: JobExtension;
+  job: Job<Payload>;
 }
 
 const log = RootLogger.getChildCategory("RedisJobQueue");
 
-export class RedisJobQueue<
-  Payload,
+class WorkerContextEmitter<
   Response,
+  Client extends ClientEvents<Response> = ClientEvents<Response>
+> extends ClientEventEmitter<Response, Client> {
+  constructor(
+    private defaultHandler: <U extends keyof Client>(
+      event: U,
+      ...args: Parameters<Client[U]>
+    ) => void
+  ) {
+    super();
+  }
+  override emit<U extends keyof Client>(
+    event: U,
+    ...args: Parameters<Client[U]>
+  ): boolean {
+    const superCall = super.emit(event, ...args);
+    if (!superCall) {
+      this.defaultHandler(event, ...args);
+    }
+    return true;
+  }
+}
+
+export class RedisJobQueue<
+  Payload extends Record<any, any> = {},
+  Response = undefined,
   Client extends ClientEvents<Response> = ClientEvents<Response>,
-  Worker extends WorkerEvents = WorkerEvents,
-  JobExtension extends Job<Payload> = Job<Payload>
-> implements JobQueue<Payload, Response, Client, Worker, JobExtension>
+  Worker extends WorkerEvents = WorkerEvents
+> implements JobQueue<Payload, Response, Client, Worker>
 {
   private readonly redis: Redis;
   private readonly id: string;
@@ -100,15 +118,18 @@ export class RedisJobQueue<
     this.readStream(this.mkClientStreamId(jobId), (field) => {
       const clientStreamMessage: ClientStreamMessage<Response, Client> =
         JSON.parse(field);
-      emitter.emit(clientStreamMessage.type, ...clientStreamMessage.payload);
+      emitter.emit(
+        clientStreamMessage.type,
+        ...(clientStreamMessage.payload ?? [])
+      );
     });
     return emitter;
   }
 
   register(
     handler: (
-      job: JobExtension,
-      context: WorkerContext<Response>,
+      job: Job<Payload>,
+      context: ClientEventEmitter<Client>,
       workerEvents: WorkerEventEmitter<Worker>
     ) => void
   ): JobWorker<Payload, Response> {
@@ -118,25 +139,14 @@ export class RedisJobQueue<
       redisInstance.blpop(this.queueId, 0).then(async (item) => {
         if (item) {
           const [, rawWrapper] = item;
-          const wrapper: JobWrapper<Payload, JobExtension> =
-            JSON.parse(rawWrapper);
+          const wrapper: JobWrapper<Payload> = JSON.parse(rawWrapper);
           worker.currentPayload = wrapper.job.payload;
+          const emitter = new WorkerContextEmitter<Response, Client>(
+            (event, ...args) => this.sendMessage(wrapper.id, event, args)
+          );
           await handler(
             wrapper.job,
-            {
-              success: (result) => {
-                worker.lastResponse = result;
-                this.sendStatus(wrapper.id, JobStatus.SUCCESS);
-                this.sendSuccess(wrapper.id, result);
-              },
-              fail: (reason) => {
-                this.sendStatus(wrapper.id, JobStatus.FAIL);
-                this.sendFailure(wrapper.id, reason);
-              },
-              start: () => {
-                this.sendStatus(wrapper.id, JobStatus.START);
-              },
-            },
+            emitter,
             this.mkWorkerEventEmitter(wrapper.id)
           );
         }
@@ -147,39 +157,18 @@ export class RedisJobQueue<
     return worker;
   }
 
-  private sendStatus(jobId: JobId, status: JobStatus) {
-    log.info(`Sending status ${status} for ${jobId}`);
+  private sendMessage(
+    jobId: JobId,
+    messageType: keyof Client,
+    ...handlerArgs: any
+  ) {
     this.redis.xadd(
       this.mkClientStreamId(jobId),
       "*",
       randomUUID(),
       JSON.stringify({
-        type: "status",
-        payload: [status],
-      } as ClientStreamMessage<Client>)
-    );
-  }
-
-  private sendSuccess(jobId: JobId, response: Response) {
-    this.redis.xadd(
-      this.mkClientStreamId(jobId),
-      "*",
-      randomUUID(),
-      JSON.stringify({
-        type: "success",
-        payload: [response],
-      } as ClientStreamMessage<Client>)
-    );
-  }
-
-  private sendFailure(jobId: JobId, reason: string) {
-    this.redis.xadd(
-      this.mkClientStreamId(jobId),
-      "*",
-      randomUUID(),
-      JSON.stringify({
-        type: "fail",
-        payload: [reason],
+        type: messageType.toString(),
+        payload: handlerArgs,
       } as ClientStreamMessage<Client>)
     );
   }
@@ -194,7 +183,7 @@ export class RedisJobQueue<
   }
 
   async submit(
-    job: JobExtension,
+    job: Job<Payload>,
     preHook?: (emitter: ClientEventEmitter<Client>) => void
   ): Promise<JobId> {
     const id: JobId = randomUUID();
@@ -217,7 +206,7 @@ export class RedisJobQueue<
         JSON.stringify({
           id: id,
           job: job,
-        } as JobWrapper<Payload, JobExtension>)
+        } as JobWrapper<Payload>)
       )
       .then(() => id);
   }
