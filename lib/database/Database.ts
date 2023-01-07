@@ -26,6 +26,7 @@ export interface Database {
   listLibraries(): Promise<Library[]>;
   getLibrary(libraryId: string): Promise<Library | undefined>;
   upsertLibrary(library: Library): Promise<boolean>;
+  deleteLibrary(libraryId: string): Promise<boolean>;
 
   getImage(imageId: string): Promise<ImageInfo | undefined>;
   upsertImage(image: ImageInfo): Promise<boolean>;
@@ -132,6 +133,8 @@ export abstract class AbstractDatabase implements Database {
   abstract listShows(libraryId: string): Promise<ShowInfo[]>;
 
   abstract listUsers(): Promise<User[]>;
+
+  abstract deleteLibrary(libraryId: string): Promise<boolean>;
 
   abstract putUser(user: User): Promise<boolean>;
 

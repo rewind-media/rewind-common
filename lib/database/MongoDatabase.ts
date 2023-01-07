@@ -122,6 +122,12 @@ export class MongoDatabase extends AbstractDatabase {
       );
   }
 
+  deleteLibrary(libraryId: string): Promise<boolean> {
+    return this.libraries
+      .deleteMany({ name: libraryId })
+      .then((result) => result.deletedCount > 0);
+  }
+
   // Files
   getFile(fileId: string): Promise<FileInfo | undefined> {
     return this.files
