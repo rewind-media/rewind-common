@@ -74,6 +74,14 @@ export class RedisJobQueue<
     this.queueId = `JobQueue:${id}:Queue`;
   }
 
+  notify(
+    jobId: string,
+    eventName: keyof Worker,
+    ...params: Parameters<Worker[typeof eventName]>
+  ): Promise<void> {
+    return this.sendWorkerMessage(jobId, eventName, ...params);
+  }
+
   private mkWorkerStreamId = (jobId: JobId) =>
     `JobQueue:${this.id}:Worker:${jobId}`;
   private mkClientStreamId = (jobId: JobId) =>
@@ -88,11 +96,11 @@ export class RedisJobQueue<
     const read = (internalLastId: string = "0-0") => {
       conn
         .xread("BLOCK", 0, "STREAMS", streamId, internalLastId)
-        .then((results) => {
+        .then(async (results) => {
           if (results && results[0]) {
             const [, messages] = results[0];
-            const lastMessage = List(messages).last();
-            const latestLastId = lastMessage ? lastMessage[0] : internalLastId;
+            const ids = List(messages).map((it) => it[0]);
+            const latestLastId = ids.last() ?? internalLastId;
             messages
               .flatMap(([, fields]) =>
                 // key value pairs, and we only want the values for the messages
@@ -103,6 +111,9 @@ export class RedisJobQueue<
                 log.info(`Received message from ${streamId}: ${it}`);
                 handler(it);
               });
+            if (!ids.isEmpty()) {
+              await conn.xdel(streamId, ...ids.toArray());
+            }
             read(latestLastId);
           } else {
             read();
@@ -142,7 +153,7 @@ export class RedisJobQueue<
           const wrapper: JobWrapper<Payload> = JSON.parse(rawWrapper);
           worker.currentPayload = wrapper.job.payload;
           const emitter = new WorkerContextEmitter<Response, Client>(
-            (event, ...args) => this.sendMessage(wrapper.id, event, args)
+            (event, ...args) => this.sendClientMessage(wrapper.id, event, args)
           );
           await handler(
             wrapper.job,
@@ -157,7 +168,7 @@ export class RedisJobQueue<
     return worker;
   }
 
-  private sendMessage(
+  private sendClientMessage(
     jobId: JobId,
     messageType: keyof Client,
     ...handlerArgs: any
@@ -171,6 +182,24 @@ export class RedisJobQueue<
         payload: handlerArgs,
       } as ClientStreamMessage<Client>)
     );
+  }
+
+  private sendWorkerMessage(
+    jobId: JobId,
+    messageType: keyof Worker,
+    ...handlerArgs: any
+  ): Promise<void> {
+    return this.redis
+      .xadd(
+        this.mkWorkerStreamId(jobId),
+        "*",
+        randomUUID(),
+        JSON.stringify({
+          type: messageType.toString(),
+          payload: handlerArgs,
+        } as WorkerStreamMessage<Worker>)
+      )
+      .then();
   }
 
   private mkWorkerEventEmitter(jobId: JobId): WorkerEventEmitter<WorkerEvents> {

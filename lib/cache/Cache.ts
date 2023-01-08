@@ -8,6 +8,7 @@ export interface Cache {
     expiration: Date
   ): Promise<void>;
   delStreamMetadata(id: string): Promise<void>;
+  expireStreamMetadata(id: string, expiration: Date): Promise<void>;
 
   getSegmentM4s(streamId: string, segmentId: number): Promise<Buffer | null>;
   putSegmentM4s(
@@ -17,6 +18,11 @@ export interface Cache {
     expiration: Date
   ): Promise<void>;
   delSegmentM4s(streamId: string, segmentId: number): Promise<void>;
+  expireSegmentM4s(
+    streamId: string,
+    segmentId: number,
+    expiration: Date
+  ): Promise<void>;
 
   getInitMp4(streamId: string): Promise<Buffer | null>;
   putInitMp4(
@@ -25,6 +31,7 @@ export interface Cache {
     expiration: Date
   ): Promise<void>;
   delInitMp4(streamId: string): Promise<void>;
+  expireInitMp4(id: string, expiration: Date): Promise<void>;
 
   getImage(imageId: string): Promise<Buffer | null>;
   putImage(

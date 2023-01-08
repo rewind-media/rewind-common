@@ -3,6 +3,7 @@ import { Redis } from "ioredis";
 import { StreamMetadata } from "../models.js";
 import { RootLogger } from "../util/log.js";
 import { Duration } from "durr";
+import { Second } from "durr/dist/Units.js";
 
 function calculateTtlSecs(expiration: Date): number {
   return Math.ceil(Duration.between(new Date(), expiration).seconds);
@@ -14,6 +15,35 @@ export class RedisCache implements Cache {
   private readonly redis: Redis;
   constructor(redis: Redis) {
     this.redis = redis;
+  }
+
+  expireStreamMetadata(streamId: string, expiration: Date): Promise<void> {
+    return this.redis
+      .expireat(
+        `Hls:${streamId}:Metadata`,
+        Math.ceil(Second.fromMillis(expiration.getTime()))
+      )
+      .then();
+  }
+  expireSegmentM4s(
+    streamId: string,
+    segmentId: number,
+    expiration: Date
+  ): Promise<void> {
+    return this.redis
+      .expireat(
+        `Hls:${streamId}:seg:${segmentId}`,
+        Math.ceil(Second.fromMillis(expiration.getTime()))
+      )
+      .then();
+  }
+  expireInitMp4(streamId: string, expiration: Date): Promise<void> {
+    return this.redis
+      .expireat(
+        `Hls:${streamId}:init`,
+        Math.ceil(Second.fromMillis(expiration.getTime()))
+      )
+      .then();
   }
 
   getStreamMetadata(streamId: string): Promise<StreamMetadata | null> {

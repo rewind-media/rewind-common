@@ -92,4 +92,9 @@ export interface JobQueue<
   ): JobWorker<Payload, Response>;
   monitor(jobId: JobId): ClientEventEmitter<Client>;
   cancel(jobId: JobId): void;
+  notify(
+    jobId: JobId,
+    eventName: keyof Worker,
+    ...params: Parameters<Worker[typeof eventName]>
+  ): Promise<void>;
 }
